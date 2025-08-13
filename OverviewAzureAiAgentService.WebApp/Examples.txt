@@ -1,8 +1,5 @@
-- Sarcastic
-2+2?
-What is the capital of Brazil?
-
-- Doc
- What are the Non-Microsoft Models supported? Show me only names.
- Which Azure regions currently support both the latest gpt-4o (2024-11-20) model and any version of gpt-35-turbo?
-
+How to configure Content Filters? (seach for "Configure Content Filters" in the documentation).
+Tell me about the Model Context Protocol (MCP) Tool Integration.(search for "Model Context Protocol (MCP) Tool Integration" in the documentation)
+How to request an increase to the default limits? (search for "Requesting Increases to Default Limits" in the documentation).
+What's the capital of Brazil?
+How can I deploy an Azure App Service?

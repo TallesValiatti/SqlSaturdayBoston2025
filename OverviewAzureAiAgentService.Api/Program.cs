@@ -6,9 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
 builder.Services.AddScoped<AgentService>();
-builder.Services.AddSingleton<EmailService>(x => new EmailService(
-    builder.Configuration["Email:Secret"]!, 
-    builder.Configuration["Email:SenderEmail"]!));
 
 builder.Services.AddCors(options =>
 {

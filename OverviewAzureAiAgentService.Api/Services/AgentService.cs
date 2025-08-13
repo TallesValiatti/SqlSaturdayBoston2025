@@ -9,7 +9,7 @@ using Thread = OverviewAzureAiAgentService.Api.Services.Models.Thread;
 
 namespace OverviewAzureAiAgentService.Api.Services;
 
-public class AgentService(IConfiguration configuration, EmailService emailService)
+public class AgentService(IConfiguration configuration)
 {
     private readonly string _annotationMark = "📖";
     
@@ -28,6 +28,7 @@ public class AgentService(IConfiguration configuration, EmailService emailServic
     public async Task<Agent> CreateAgentAsync(CreateAgentRequest request)
     {
         var aiModel = configuration["AiModel"]!;
+        var index = configuration["AzureAiSearchIndex"]!;
         
         var agentClient = CreateAgentsClient();
         var projectClient = CreateProjectClient();
@@ -42,23 +43,23 @@ public class AgentService(IConfiguration configuration, EmailService emailServic
             azureAiSearchConnectionId = connection.Id;
             break;
         }
-        //
-        // AzureAISearchToolResource searchResource = new(
-        //     indexConnectionId: azureAiSearchConnectionId,
-        //     indexName: "history-maria-jose",
-        //     topK: 5,
-        //     filter: string.Empty,
-        //     queryType: AzureAISearchQueryType.VectorSimpleHybrid
-        // );
         
-        //ToolResources toolResource = new() { AzureAISearch = searchResource };
+        AzureAISearchToolResource searchResource = new(
+            indexConnectionId: azureAiSearchConnectionId,
+            indexName: index,
+            topK: 10,
+            filter: string.Empty,
+            queryType: AzureAISearchQueryType.VectorSimpleHybrid
+        );
+        
+        ToolResources toolResource = new() { AzureAISearch = searchResource };
 
         var agentResponse = await agentClient.Administration.CreateAgentAsync(
             model: aiModel,
             name: request.Name,
-            instructions: request.Instructions);
-            //tools: [new AzureAISearchToolDefinition()],
-            //toolResources: toolResource);
+            instructions: request.Instructions,
+            tools: [new AzureAISearchToolDefinition()],
+            toolResources: toolResource);
         
         return new Agent(
             agentResponse.Value.Id,
@@ -93,18 +94,6 @@ public class AgentService(IConfiguration configuration, EmailService emailServic
         {
             await Task.Delay(TimeSpan.FromMilliseconds(500));
             runResponse = await client.Runs.GetRunAsync(request.ThreadId, runResponse.Value.Id);
-            
-            if (runResponse.Value.Status == RunStatus.RequiresAction
-                && runResponse.Value.RequiredAction is SubmitToolOutputsAction submitToolOutputsAction)
-            {
-                List<ToolOutput> toolOutputs = new();
-                foreach (RequiredToolCall toolCall in submitToolOutputsAction.ToolCalls)
-                {
-                    toolOutputs.Add(await GetResolvedToolOutputAsync(toolCall));
-                }
-                
-                runResponse = await client.Runs.SubmitToolOutputsToRunAsync(runResponse.Value, toolOutputs);
-            }
             
         } while (runResponse.Value.Status == RunStatus.Queued || 
                  runResponse.Value.Status == RunStatus.InProgress ||
@@ -226,25 +215,5 @@ public class AgentService(IConfiguration configuration, EmailService emailServic
         await AddFilesToVectorStoreAsync(vectorStore.Value.Id, files);
         
         return vectorStore.Value.Id;
-    }
-    
-    private async Task<ToolOutput> GetResolvedToolOutputAsync(RequiredToolCall toolCall)
-    {
-        if (toolCall is not RequiredFunctionToolCall functionToolCall) return null!;
-        
-        using var argumentsJson = JsonDocument.Parse(functionToolCall.Arguments);
-            
-        if (functionToolCall.Name == "EmailTool")
-        {
-            string receiver = argumentsJson.RootElement.GetProperty("receiver").GetString()!;
-            string subject = argumentsJson.RootElement.GetProperty("subject").GetString()!;
-            string body = argumentsJson.RootElement.GetProperty("body").GetString()!;
-                
-            var result = await emailService.SendAsync(receiver, subject, body);
-                
-            return new ToolOutput(toolCall, result);
-        }
-
-        return null!;
     }
 }
