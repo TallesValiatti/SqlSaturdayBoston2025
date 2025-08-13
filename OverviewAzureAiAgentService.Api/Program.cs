@@ -30,29 +30,7 @@ app.UseHttpsRedirection();
 
 app.MapPost("/agents", async ([FromServices] AgentService service, CreateAgentRequest request) =>
 {
-    Agent agent;
-    
-    if (request.IsSalesAgent)
-    {
-        agent = await service.CreateSalesAgentAsync(request);    
-    }
-    else if(request.IsDocAgent)
-    {
-        agent = await service.CreateDocAgentAsync(request);
-    }
-    else if(request.IsEmailSenderAgent)
-    {
-        agent = await service.CreateEmailSenderAgentAsync(request);
-    }
-    else if (request.IsHistoryAgent)
-    {
-        agent = await service.CreateHistoryAgentAsync(request);
-    }
-    else
-    {
-        agent = await service.CreateAgentAsync(request);
-    }
-    
+    var agent = await service.CreateAgentAsync(request);
     return Results.Ok(agent);
 }).WithName("CreateAgent");
 

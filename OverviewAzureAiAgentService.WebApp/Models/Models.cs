@@ -4,11 +4,6 @@ public class CreateAgentRequest
 {
     public string Name { get; set; } = null!;
     public string Instructions { get; set; } = null!;
-    public bool IsDocAgent { get; set; }
-    public bool IsSalesAgent { get; set; }
-    public bool IsEmailSenderAgent { get; set; }
-    public bool IsHistoryAgent { get; set; }
-    
 }
 
 public class CreateRunRequest

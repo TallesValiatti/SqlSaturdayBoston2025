@@ -28,124 +28,6 @@ public class AgentService(IConfiguration configuration, EmailService emailServic
     public async Task<Agent> CreateAgentAsync(CreateAgentRequest request)
     {
         var aiModel = configuration["AiModel"]!;
-        var client = CreateAgentsClient();
-
-        var agentResponse = await client.Administration.CreateAgentAsync(
-            model: aiModel,
-            name: request.Name,
-            instructions: request.Instructions);
-
-        return new Agent(
-            agentResponse.Value.Id,
-            agentResponse.Value.Name,
-            agentResponse.Value.Instructions);
-    }
-
-    public async Task<Agent> CreateDocAgentAsync(CreateAgentRequest request)
-    {
-        var aiModel = configuration["AiModel"]!;
-        var client = CreateAgentsClient();
-        
-        var fileIds = new List<string>();
-
-        fileIds.Add(await UploadFileAsync(Constants.FileSearchDoc, $"{nameof(Constants.FileSearchDoc)}.txt"));
-        fileIds.Add(await UploadFileAsync(Constants.ModelSupportDoc, $"{nameof(Constants.ModelSupportDoc)}.txt"));
-        
-        var vectorStoreId = await CreateDocVectorStoreAsync(files: fileIds); 
-        
-        var fileSearchToolResource = new FileSearchToolResource();
-        fileSearchToolResource.VectorStoreIds.Add(vectorStoreId);
-        
-        var agentResponse = await client.Administration.CreateAgentAsync(
-            model: aiModel,
-            name: request.Name,
-            instructions: request.Instructions,
-            tools: new List<ToolDefinition> { new FileSearchToolDefinition() },
-            toolResources: new ToolResources() { FileSearch = fileSearchToolResource });
-        
-        return new Agent(
-            agentResponse.Value.Id,
-            agentResponse.Value.Name,
-            agentResponse.Value.Instructions);
-    }
-    
-    public async Task<Agent> CreateSalesAgentAsync(CreateAgentRequest request)
-    {
-        var aiModel = configuration["AiModel"]!;
-        var salesApiUrl = configuration["SalesApiUrl"]!;
-        var openApiSchema = Constants.SalesOpenApiSchema.Replace("<URL>", salesApiUrl);
-        
-        var client = CreateAgentsClient();
-        
-        var oaiAuth = new OpenApiAnonymousAuthDetails();
-        var openapiTool = new OpenApiToolDefinition(
-            name: "GetSales",
-            description: "Get sales data",
-            spec: BinaryData.FromString(openApiSchema),
-            oaiAuth);
-        
-        var agentResponse = await client.Administration.CreateAgentAsync(
-            model: aiModel,
-            name: request.Name,
-            instructions: request.Instructions,
-            tools: new List<ToolDefinition> { openapiTool });
-        
-        return new Agent(
-            agentResponse.Value.Id,
-            agentResponse.Value.Name,
-            agentResponse.Value.Instructions);
-    }
-    
-    public async Task<Agent> CreateEmailSenderAgentAsync(CreateAgentRequest request)
-    {
-        var aiModel = configuration["AiModel"]!;
-        
-        var client = CreateAgentsClient();
-        
-        FunctionToolDefinition emailToolDefinition = new(
-            name: "EmailTool",
-            description: "Send email to a user",
-            parameters: BinaryData.FromObjectAsJson(
-                new
-                {
-                    Type = "object",
-                    Properties = new
-                    {
-                        receiver = new
-                        {
-                            Type = "string",
-                            Description = "The email of the receiver",
-                        },
-                        Subject = new
-                        {
-                            Type = "string",
-                            Description = "The subject of the email",
-                        },
-                        Body = new
-                        {
-                            Type = "string",
-                            Description = "The body of the email in HTML formatting",
-                        },
-                    },
-                    Required = new[] { "receiver", "Subject", "body"},
-                },
-                new JsonSerializerOptions() { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-        
-        var agentResponse = await client.Administration.CreateAgentAsync(
-            model: aiModel,
-            name: request.Name,
-            instructions: request.Instructions,
-            tools: new List<ToolDefinition> { emailToolDefinition });
-        
-        return new Agent(
-            agentResponse.Value.Id,
-            agentResponse.Value.Name,
-            agentResponse.Value.Instructions);
-    }
-    
-    public async Task<Agent> CreateHistoryAgentAsync(CreateAgentRequest request)
-    {
-        var aiModel = configuration["AiModel"]!;
         
         var agentClient = CreateAgentsClient();
         var projectClient = CreateProjectClient();
@@ -160,23 +42,23 @@ public class AgentService(IConfiguration configuration, EmailService emailServic
             azureAiSearchConnectionId = connection.Id;
             break;
         }
+        //
+        // AzureAISearchToolResource searchResource = new(
+        //     indexConnectionId: azureAiSearchConnectionId,
+        //     indexName: "history-maria-jose",
+        //     topK: 5,
+        //     filter: string.Empty,
+        //     queryType: AzureAISearchQueryType.VectorSimpleHybrid
+        // );
         
-        AzureAISearchToolResource searchResource = new(
-            indexConnectionId: azureAiSearchConnectionId,
-            indexName: "history-maria-jose",
-            topK: 5,
-            filter: string.Empty,
-            queryType: AzureAISearchQueryType.VectorSimpleHybrid
-        );
-        
-        ToolResources toolResource = new() { AzureAISearch = searchResource };
+        //ToolResources toolResource = new() { AzureAISearch = searchResource };
 
         var agentResponse = await agentClient.Administration.CreateAgentAsync(
             model: aiModel,
             name: request.Name,
-            instructions: request.Instructions,
-            tools: [new AzureAISearchToolDefinition()],
-            toolResources: toolResource);
+            instructions: request.Instructions);
+            //tools: [new AzureAISearchToolDefinition()],
+            //toolResources: toolResource);
         
         return new Agent(
             agentResponse.Value.Id,
